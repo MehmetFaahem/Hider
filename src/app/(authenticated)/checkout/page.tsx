@@ -1,56 +1,47 @@
 'use client'
 
-import {
-  Typography,
-  Form,
-  Input,
-  Radio,
-  Card,
-  Button,
-  Space,
-  Divider,
-} from 'antd'
-import {
-  ShoppingCartOutlined,
-  CreditCardOutlined,
-  CheckCircleOutlined,
-} from '@ant-design/icons'
-import { useState } from 'react'
-const { Title, Text } = Typography
 import { useUserContext } from '@/core/context'
-import { useRouter, useParams } from 'next/navigation'
-import { useUploadPublic } from '@/core/hooks/upload'
-import { useSnackbar } from 'notistack'
-import dayjs from 'dayjs'
 import { Api } from '@/core/trpc'
 import { PageLayout } from '@/designSystem'
+import { CheckCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons'
+import { Button, Card, Divider, Form, Input, Typography } from 'antd'
+import { useRouter } from 'next/navigation'
+import { useSnackbar } from 'notistack'
+const { Title, Text } = Typography
 
 export default function CheckoutPage() {
   const router = useRouter()
   const { user } = useUserContext()
   const { enqueueSnackbar } = useSnackbar()
   const [form] = Form.useForm()
-  const [paymentMethod, setPaymentMethod] = useState<string>('credit_card')
 
-  // Fetch active cart with items
-  const { data: cart } = Api.cart.findFirst.useQuery({
-    where: { userId: user?.id, status: 'active' },
-    include: {
-      cartItems: {
-        include: {
-          product: true,
-          variant: true,
+  // Add refetch and enabled condition to cart query
+  const { data: cart, refetch: refetchCart } = Api.cart.findFirst.useQuery(
+    {
+      where: { userId: user?.id, status: 'ACTIVE' },
+      include: {
+        cartItems: {
+          include: {
+            product: true,
+            variant: true,
+          },
         },
       },
     },
-  })
+    {
+      enabled: !!user?.id, // Only run query when user exists
+    },
+  )
 
-  // Calculate total
+  // Add console.log to debug cart data
+  console.log('Cart data:', cart)
+
+  // Calculate total with null checks
   const total =
-    cart?.cartItems?.reduce(
-      (sum, item) => sum + parseFloat(item.price) * item.quantity,
-      0,
-    ) || 0
+    cart?.cartItems?.reduce((sum, item) => {
+      if (!item.price || !item.quantity) return sum
+      return sum + Number(item.price) * item.quantity
+    }, 0) || 0
 
   const { mutateAsync: createOrder } = Api.order.create.useMutation()
   const { mutateAsync: updateCart } = Api.cart.update.useMutation()
@@ -61,13 +52,13 @@ export default function CheckoutPage() {
     try {
       if (!cart || !user) return
 
-      // Create order
+      // Create order with COD payment method
       const order = await createOrder({
         data: {
           status: 'pending',
           total: total.toString(),
           shippingAddress: values.address,
-          paymentMethod: paymentMethod,
+          paymentMethod: 'cash_on_delivery', // Set fixed payment method
           userId: user.id,
         },
       })
@@ -129,37 +120,44 @@ export default function CheckoutPage() {
         </Card>
 
         <Card title="Payment Method" style={{ marginBottom: 24 }}>
-          <Radio.Group
-            value={paymentMethod}
-            onChange={e => setPaymentMethod(e.target.value)}
-          >
-            <Space direction="vertical">
-              <Radio value="credit_card">
-                <CreditCardOutlined /> Credit Card
-              </Radio>
-              <Radio value="paypal">
-                <CreditCardOutlined /> PayPal
-              </Radio>
-            </Space>
-          </Radio.Group>
+          <Text>Cash on Delivery (COD)</Text>
         </Card>
 
         <Card title="Order Summary">
-          {cart?.cartItems?.map(item => (
-            <div key={item.id} style={{ marginBottom: 12 }}>
-              <Text>{item.product?.name}</Text>
-              {item.variant && (
-                <Text type="secondary"> - {item.variant.value}</Text>
-              )}
-              <div>
-                <Text type="secondary">
-                  Quantity: {item.quantity.toString()} x ${item.price}
+          {!cart?.cartItems?.length ? (
+            <Text>Your cart is empty</Text>
+          ) : (
+            <>
+              {cart.cartItems.map(item => (
+                <div key={item.id} style={{ marginBottom: 12 }}>
+                  <Text strong>{item.product?.name || 'Unknown Product'}</Text>
+                  {item.variant && (
+                    <Text type="secondary"> - {item.variant.value}</Text>
+                  )}
+                  <div>
+                    <Text type="secondary">
+                      Quantity: {item.quantity || 0} x $
+                      {Number(item.price || 0).toFixed(2)}
+                    </Text>
+                  </div>
+                  <div>
+                    <Text type="secondary">
+                      Subtotal: $
+                      {((item.quantity || 0) * Number(item.price || 0)).toFixed(
+                        2,
+                      )}
+                    </Text>
+                  </div>
+                  <Divider />
+                </div>
+              ))}
+              <div style={{ marginTop: 16 }}>
+                <Text strong style={{ fontSize: 16 }}>
+                  Total: ${total.toFixed(2)}
                 </Text>
               </div>
-            </div>
-          ))}
-          <Divider />
-          <Text strong>Total: ${total.toFixed(2)}</Text>
+            </>
+          )}
         </Card>
 
         <div style={{ marginTop: 24, textAlign: 'right' }}>

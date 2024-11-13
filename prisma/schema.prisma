@@ -26,7 +26,8 @@ model Product {
   stock       Float
   category    String?
   status      String
-  featured    Boolean
+  featured    Boolean     @default(false)
+  trending    Boolean     @default(false)
   imageUrl    String?
   variants    Variant[]   @relation("product")
   cartItems   CartItem[]  @relation("product")

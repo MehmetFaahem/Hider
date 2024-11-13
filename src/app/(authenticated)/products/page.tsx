@@ -1,30 +1,28 @@
 'use client'
 
-import {
-  Typography,
-  Card,
-  Row,
-  Col,
-  Select,
-  InputNumber,
-  Button,
-  Space,
-  Empty,
-} from 'antd'
-import {
-  ShoppingCartOutlined,
-  FilterOutlined,
-  SortAscendingOutlined,
-} from '@ant-design/icons'
-import { useState } from 'react'
-const { Title, Text } = Typography
 import { useUserContext } from '@/core/context'
-import { useRouter, useParams } from 'next/navigation'
-import { useUploadPublic } from '@/core/hooks/upload'
-import { useSnackbar } from 'notistack'
-import dayjs from 'dayjs'
 import { Api } from '@/core/trpc'
 import { PageLayout } from '@/designSystem'
+import {
+  FilterOutlined,
+  ShoppingCartOutlined,
+  SortAscendingOutlined,
+} from '@ant-design/icons'
+import {
+  Button,
+  Card,
+  Col,
+  Empty,
+  InputNumber,
+  Row,
+  Select,
+  Space,
+  Typography,
+} from 'antd'
+import { useParams, useRouter } from 'next/navigation'
+import { useSnackbar } from 'notistack'
+import { useState } from 'react'
+const { Title, Text } = Typography
 
 export default function ProductsPage() {
   const router = useRouter()

@@ -1,5 +1,3 @@
-
-
 model Product {
 
     id                String        @id @default(uuid())  
@@ -10,6 +8,7 @@ model Product {
     category    String?          
     status        String          
     featured    Boolean        
+    trending    Boolean        
     imageUrl    String?          
 
 variants    Variant[]  @relation("product")  

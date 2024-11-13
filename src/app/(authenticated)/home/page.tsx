@@ -1,31 +1,29 @@
 'use client'
 
-import {
-  Typography,
-  Input,
-  Select,
-  Card,
-  Row,
-  Col,
-  Badge,
-  Space,
-  Button,
-} from 'antd'
-import {
-  ShoppingCartOutlined,
-  FireOutlined,
-  TagOutlined,
-  SearchOutlined,
-} from '@ant-design/icons'
-const { Title, Text } = Typography
-const { Search } = Input
 import { useUserContext } from '@/core/context'
-import { useRouter, useParams } from 'next/navigation'
-import { useUploadPublic } from '@/core/hooks/upload'
-import { useSnackbar } from 'notistack'
-import dayjs from 'dayjs'
 import { Api } from '@/core/trpc'
 import { PageLayout } from '@/designSystem'
+import {
+  FireOutlined,
+  SearchOutlined,
+  ShoppingCartOutlined,
+  TagOutlined,
+} from '@ant-design/icons'
+import {
+  Badge,
+  Button,
+  Card,
+  Col,
+  Input,
+  Row,
+  Select,
+  Space,
+  Typography,
+} from 'antd'
+import { useParams, useRouter } from 'next/navigation'
+import { useSnackbar } from 'notistack'
+const { Title, Text } = Typography
+const { Search } = Input
 
 export default function HomePage() {
   const router = useRouter()
@@ -41,7 +39,7 @@ export default function HomePage() {
 
   // Fetch trending products (based on stock < 10 as an example)
   const { data: trendingProducts } = Api.product.findMany.useQuery({
-    where: { stock: { lt: 10 } },
+    where: { trending: true },
     take: 4,
   })
 

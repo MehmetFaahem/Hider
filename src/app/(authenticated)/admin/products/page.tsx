@@ -1,36 +1,28 @@
 'use client'
 
+import { useUserContext } from '@/core/context'
+import { Api } from '@/core/trpc'
+import { PageLayout } from '@/designSystem'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
+import { Prisma } from '@prisma/client'
 import {
   Button,
-  Table,
-  Modal,
   Form,
   Input,
   InputNumber,
-  Typography,
+  Modal,
+  Select,
   Space,
-  Upload,
+  Table,
+  Typography,
 } from 'antd'
-import {
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-  UploadOutlined,
-} from '@ant-design/icons'
+import { useRouter } from 'next/navigation'
+import { useSnackbar } from 'notistack'
 import { useState } from 'react'
-import type { UploadFile } from 'antd/es/upload/interface'
-import { Prisma } from '@prisma/client'
 const { Title, Text } = Typography
 type ProductWithVariants = Prisma.ProductGetPayload<{
   include: { variants: true }
 }>
-import { useUserContext } from '@/core/context'
-import { useRouter, useParams } from 'next/navigation'
-import { useUploadPublic } from '@/core/hooks/upload'
-import { useSnackbar } from 'notistack'
-import dayjs from 'dayjs'
-import { Api } from '@/core/trpc'
-import { PageLayout } from '@/designSystem'
 
 export default function AdminProductsPage() {
   const router = useRouter()
@@ -40,8 +32,6 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] =
     useState<ProductWithVariants | null>(null)
   const [form] = Form.useForm()
-  const [fileList, setFileList] = useState<UploadFile[]>([])
-  const { mutateAsync: upload } = useUploadPublic()
 
   const { data: products, refetch } = Api.product.findMany.useQuery({
     include: { variants: true },
@@ -63,12 +53,6 @@ export default function AdminProductsPage() {
 
   const handleSubmit = async (values: any) => {
     try {
-      let imageUrl = editingProduct?.imageUrl
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        const uploadResult = await upload({ file: fileList[0].originFileObj })
-        imageUrl = uploadResult.url
-      }
-
       const productData = {
         name: values.name,
         description: values.description,
@@ -76,8 +60,9 @@ export default function AdminProductsPage() {
         stock: values.stock,
         category: values.category,
         status: values.status,
-        featured: false,
-        imageUrl,
+        featured: values.featured || false,
+        trending: values.trending || false,
+        imageUrl: values.imageUrl,
       }
 
       if (editingProduct) {
@@ -93,7 +78,6 @@ export default function AdminProductsPage() {
 
       setIsModalVisible(false)
       form.resetFields()
-      setFileList([])
       setEditingProduct(null)
       refetch()
     } catch (error) {
@@ -135,6 +119,18 @@ export default function AdminProductsPage() {
       key: 'category',
     },
     {
+      title: 'Featured',
+      dataIndex: 'featured',
+      key: 'featured',
+      render: (featured: boolean) => (featured ? 'Yes' : 'No'),
+    },
+    {
+      title: 'Trending',
+      dataIndex: 'trending',
+      key: 'trending',
+      render: (trending: boolean) => (trending ? 'Yes' : 'No'),
+    },
+    {
       title: 'Actions',
       key: 'actions',
       render: (_: any, record: ProductWithVariants) => (
@@ -145,14 +141,7 @@ export default function AdminProductsPage() {
               setEditingProduct(record)
               form.setFieldsValue(record)
               if (record.imageUrl) {
-                setFileList([
-                  {
-                    uid: '-1',
-                    name: 'image.png',
-                    status: 'done',
-                    url: record.imageUrl,
-                  },
-                ])
+                form.setFieldsValue({ imageUrl: record.imageUrl })
               }
               setIsModalVisible(true)
             }}
@@ -184,7 +173,6 @@ export default function AdminProductsPage() {
             onClick={() => {
               setEditingProduct(null)
               form.resetFields()
-              setFileList([])
               setIsModalVisible(true)
             }}
           >
@@ -228,15 +216,20 @@ export default function AdminProductsPage() {
             >
               <Input />
             </Form.Item>
-            <Form.Item label="Image">
-              <Upload
-                fileList={fileList}
-                onChange={({ fileList }) => setFileList(fileList)}
-                beforeUpload={() => false}
-                maxCount={1}
-              >
-                <Button icon={<UploadOutlined />}>Select Image</Button>
-              </Upload>
+            <Form.Item name="imageUrl" label="Image URL">
+              <Input placeholder="Enter image URL" />
+            </Form.Item>
+            <Form.Item name="featured" label="Featured Product">
+              <Select>
+                <Select.Option value={true}>Yes</Select.Option>
+                <Select.Option value={false}>No</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item name="trending" label="Trending Product">
+              <Select>
+                <Select.Option value={true}>Yes</Select.Option>
+                <Select.Option value={false}>No</Select.Option>
+              </Select>
             </Form.Item>
             <Form.Item>
               <Button
